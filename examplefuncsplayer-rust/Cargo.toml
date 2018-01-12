@@ -1,0 +1,8 @@
+[package]
+name = "examplefuncsplayer-rust"
+version = "0.1.0"
+
+[dependencies]
+battlecode-engine = {path = "../../battlecode-2018/battlecode-engine"}
+failure = "0.1.1"
+rand = "0.4.2"
