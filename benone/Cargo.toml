@@ -1,0 +1,7 @@
+[package]
+name = "benone"
+version = "0.1.0"
+
+[dependencies]
+battlecode-engine = {path = "../../battlecode-2018/battlecode-engine"}
+time = "0.1"
