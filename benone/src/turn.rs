@@ -1,7 +1,10 @@
+use fnv::FnvHashMap;
+
 use rand;
 
 use bc::controller::GameController;
 use bc::location::Direction;
+use bc::map::PlanetMap;
 use bc::unit::{Unit, UnitID, UnitType};
 use bc::world::Team;
 
@@ -42,12 +45,59 @@ impl KnownUnits {
 }
 
 #[derive(Debug)]
+pub(crate) struct KnownKarbonite {
+    // All the locations that are known to have karbonite
+    karbonite_locations: FnvHashMap<(i32, i32), u32>,
+    // whether the gravity map needs updating on the next turn
+    update_map: bool,
+}
+
+impl KnownKarbonite {
+    fn new(planet: &PlanetMap) -> KnownKarbonite {
+        let width = planet.width;
+        let height = planet.height;
+        let original_locs = &planet.initial_karbonite;
+
+        let mut locs = FnvHashMap::default();
+
+        for x in 0..width {
+            for y in 0..height {
+                let karbonite = original_locs[y][x];
+                if karbonite > 0 {
+                    locs.insert((y as i32, x as i32), karbonite);
+                }
+            }
+        }
+
+        KnownKarbonite {
+            karbonite_locations: locs,
+            update_map: true,
+        }
+    }
+
+    pub(crate) fn get(&self, y: i32, x: i32) -> u32 {
+        match self.karbonite_locations.get(&(y, x)) {
+            Some(&amt) => amt,
+            None => 0u32,
+        }
+    }
+
+    pub(crate) fn set(&mut self, y: i32, x: i32, karbonite: u32) {
+        if karbonite > 0 {
+            self.karbonite_locations.insert((y, x), karbonite);
+        } else {
+            self.karbonite_locations.remove(&(y, x));
+        }
+    }
+}
+
+#[derive(Debug)]
 pub(crate) struct Turn {
     pub(crate) rng: rand::ThreadRng,
 
     pub(crate) directions: Vec<Direction>,
 
-    pub(crate) known_karbonite: Vec<Vec<u32>>,
+    pub(crate) known_karbonite: KnownKarbonite,
 
     pub(crate) my_units: KnownUnits,
     pub(crate) enemy_units: KnownUnits,
@@ -61,7 +111,7 @@ impl Turn {
         let mut turn = Turn {
             rng: rand::thread_rng(),
             directions: Direction::all(),
-            known_karbonite: starting_map.initial_karbonite.clone(),
+            known_karbonite: KnownKarbonite::new(&starting_map),
             my_units: Default::default(),
             enemy_units: Default::default(),
         };

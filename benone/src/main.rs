@@ -1,8 +1,8 @@
 extern crate battlecode_engine as bc;
 extern crate failure;
 extern crate fnv;
-extern crate time;
 extern crate rand;
+extern crate time;
 
 mod turn;
 
@@ -14,21 +14,26 @@ use failure::Error;
 use turn::Turn;
 
 fn do_workers(gc: &mut GameController, turn: &mut Turn) -> Result<(), Error> {
+    let num_workers = turn.my_units.workers.len();
     for &worker_id in turn.my_units.workers.iter() {
-        let rand_direction = **rand::seq::sample_iter(&mut turn.rng, &turn.directions, 1).unwrap().get(0).unwrap();
-        if gc.can_replicate(worker_id, rand_direction) {
+        let rand_direction = **rand::seq::sample_iter(&mut turn.rng, &turn.directions, 1)
+            .unwrap()
+            .get(0)
+            .unwrap();
+        if num_workers < 6 && gc.can_replicate(worker_id, rand_direction) {
             gc.replicate(worker_id, rand_direction)?;
             continue;
         }
         let location = match gc.unit_ref(worker_id)?.location() {
             Location::OnMap(location) => location,
-            _ => continue
+            _ => continue,
         };
         // TODO - replace with "find nearest karbonite"
-        let known_karbonite = turn.known_karbonite[location.y as usize][location.x as usize];
+        let known_karbonite = turn.known_karbonite.get(location.y, location.x);
         if known_karbonite > 0 {
             let actual_karbonite = gc.karbonite_at(location)?;
-            turn.known_karbonite[location.y as usize][location.x as usize] = actual_karbonite;
+            turn.known_karbonite
+                .set(location.y, location.x, actual_karbonite);
             if actual_karbonite > 0 && gc.can_harvest(worker_id, Direction::Center) {
                 gc.harvest(worker_id, Direction::Center)?;
                 continue;
