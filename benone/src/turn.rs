@@ -6,7 +6,8 @@ use bc::controller::GameController;
 use bc::location::Direction;
 use bc::map::PlanetMap;
 use bc::unit::{Unit, UnitID, UnitType};
-use bc::world::Team;
+
+use map::{gravity_map, GravityMap};
 
 #[derive(Debug, Default)]
 pub(crate) struct KnownUnits {
@@ -50,6 +51,7 @@ pub(crate) struct KnownKarbonite {
     karbonite_locations: FnvHashMap<(i32, i32), u32>,
     // whether the gravity map needs updating on the next turn
     update_map: bool,
+    pub(crate) gravity_map: GravityMap,
 }
 
 impl KnownKarbonite {
@@ -69,10 +71,25 @@ impl KnownKarbonite {
             }
         }
 
+        let map = gravity_map(planet, locs.keys().map(|x| *x).collect());
+
         KnownKarbonite {
             karbonite_locations: locs,
-            update_map: true,
+            update_map: false,
+            gravity_map: map,
         }
+    }
+
+    fn update(&mut self, planet: &PlanetMap) {
+        if !self.update_map {
+            return;
+        }
+        println!(" updating map");
+        self.gravity_map = gravity_map(
+            planet,
+            self.karbonite_locations.keys().map(|x| *x).collect(),
+        );
+        self.update_map = false;
     }
 
     pub(crate) fn get(&self, y: i32, x: i32) -> u32 {
@@ -86,6 +103,7 @@ impl KnownKarbonite {
         if karbonite > 0 {
             self.karbonite_locations.insert((y, x), karbonite);
         } else {
+            self.update_map = true;
             self.karbonite_locations.remove(&(y, x));
         }
     }
@@ -132,5 +150,7 @@ impl Turn {
                 self.enemy_units.add(unit_ref);
             }
         }
+
+        self.known_karbonite.update(gc.starting_map(gc.planet()));
     }
 }

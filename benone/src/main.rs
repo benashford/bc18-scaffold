@@ -5,6 +5,7 @@ extern crate rand;
 extern crate time;
 
 mod turn;
+mod map;
 
 use bc::controller::GameController;
 use bc::location::{Direction, Location};
@@ -26,7 +27,7 @@ fn do_workers(gc: &mut GameController, turn: &mut Turn) -> Result<(), Error> {
         }
         let location = match gc.unit_ref(worker_id)?.location() {
             Location::OnMap(location) => location,
-            _ => continue,
+            _ => continue, // Probably in-space, ignore it
         };
         // TODO - replace with "find nearest karbonite"
         let known_karbonite = turn.known_karbonite.get(location.y, location.x);
@@ -38,11 +39,17 @@ fn do_workers(gc: &mut GameController, turn: &mut Turn) -> Result<(), Error> {
                 gc.harvest(worker_id, Direction::Center)?;
                 continue;
             }
-        } else {
-            if gc.is_move_ready(worker_id) {
-                if gc.can_move(worker_id, rand_direction) {
-                    gc.move_robot(worker_id, rand_direction)?;
+        }
+        // TODO - workers can mine adjacent squares without moving, do that here
+        if gc.is_move_ready(worker_id) {
+            if let Some(direction) =
+                turn.known_karbonite.gravity_map[location.y as usize][location.x as usize].direction
+            {
+                if gc.can_move(worker_id, direction) {
+                    gc.move_robot(worker_id, direction)?;
                 }
+            } else {
+                println!(" worker {} has nowhere to move", worker_id);
             }
         }
     }
