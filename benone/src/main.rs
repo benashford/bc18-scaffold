@@ -50,8 +50,6 @@ fn do_workers(gc: &mut GameController, turn: &mut Turn) -> Result<(), Error> {
                 } else if gc.can_move(worker_id, rand_direction) {
                     gc.move_robot(worker_id, rand_direction)?;
                 }
-            } else {
-                println!(" worker {} has nowhere to move", worker_id);
             }
         }
     }
