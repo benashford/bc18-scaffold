@@ -8,11 +8,49 @@ mod turn;
 mod map;
 
 use bc::controller::GameController;
-use bc::location::{Direction, Location};
+use bc::error::GameError;
+use bc::location::{Direction, Location, MapLocation};
 
 use failure::Error;
 
-use turn::Turn;
+use turn::{KnownKarbonite, Turn};
+
+fn harvest_karbonite(
+    gc: &mut GameController,
+    karbonite: &mut KnownKarbonite,
+    worker_id: u16,
+    location: &MapLocation,
+    direction: Direction,
+) -> Result<bool, GameError> {
+    let target_location = location.add(direction);
+    let known_karbonite = karbonite.get(target_location.x, target_location.y);
+    if known_karbonite > 0 {
+        let actual_karbonite = gc.karbonite_at(target_location)?;
+        karbonite.set(location.x, location.y, actual_karbonite);
+        if actual_karbonite > 0 && gc.can_harvest(worker_id, direction) {
+            gc.harvest(worker_id, direction)?;
+            return Ok(true);
+        }
+    }
+    Ok(false)
+}
+
+fn harvest_nearest_karbonite(
+    gc: &mut GameController,
+    karbonite: &mut KnownKarbonite,
+    worker_id: u16,
+    location: &MapLocation,
+) -> Result<bool, GameError> {
+    if harvest_karbonite(gc, karbonite, worker_id, location, Direction::Center)? {
+        return Ok(true);
+    }
+    for &dir in Direction::all().iter() {
+        if harvest_karbonite(gc, karbonite, worker_id, location, dir)? {
+            return Ok(true);
+        }
+    }
+    Ok(false)
+}
 
 fn do_workers(gc: &mut GameController, turn: &mut Turn) -> Result<(), Error> {
     let num_workers = turn.my_units.workers.len();
@@ -30,6 +68,9 @@ fn do_workers(gc: &mut GameController, turn: &mut Turn) -> Result<(), Error> {
             _ => continue, // Probably in-space, ignore it
         };
         // TODO - replace with "find nearest karbonite"
+        if harvest_nearest_karbonite(gc, &mut turn.known_karbonite, worker_id, &location)? {
+            continue;
+        }
         let known_karbonite = turn.known_karbonite.get(location.x, location.y);
         if known_karbonite > 0 {
             let actual_karbonite = gc.karbonite_at(location)?;
