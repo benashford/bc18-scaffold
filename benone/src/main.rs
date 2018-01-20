@@ -42,8 +42,10 @@ fn do_workers(gc: &mut GameController, turn: &mut Turn) -> Result<(), Error> {
         }
         // TODO - workers can mine adjacent squares without moving, do that here
         if gc.is_move_ready(worker_id) {
-            if let Some(direction) =
-                turn.known_karbonite.gravity_map[location.y as usize][location.x as usize].direction
+            if let Some(direction) = turn.known_karbonite
+                .gravity_map
+                .get(location.y, location.x)
+                .direction
             {
                 if gc.can_move(worker_id, direction) {
                     gc.move_robot(worker_id, direction)?;

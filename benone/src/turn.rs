@@ -7,7 +7,7 @@ use bc::location::Direction;
 use bc::map::PlanetMap;
 use bc::unit::{Unit, UnitID, UnitType};
 
-use map::{gravity_map, GravityMap};
+use map::GravityMap;
 
 #[derive(Debug, Default)]
 pub(crate) struct KnownUnits {
@@ -71,7 +71,8 @@ impl KnownKarbonite {
             }
         }
 
-        let map = gravity_map(planet, locs.keys().map(|x| *x).collect());
+        let mut map = GravityMap::new(planet);
+        map.update(locs.keys().map(|x| *x).collect());
 
         KnownKarbonite {
             karbonite_locations: locs,
@@ -80,15 +81,13 @@ impl KnownKarbonite {
         }
     }
 
-    fn update(&mut self, planet: &PlanetMap) {
+    fn update(&mut self) {
         if !self.update_map {
             return;
         }
         println!(" updating map");
-        self.gravity_map = gravity_map(
-            planet,
-            self.karbonite_locations.keys().map(|x| *x).collect(),
-        );
+        self.gravity_map
+            .update(self.karbonite_locations.keys().map(|x| *x).collect());
         self.update_map = false;
     }
 
@@ -151,6 +150,6 @@ impl Turn {
             }
         }
 
-        self.known_karbonite.update(gc.starting_map(gc.planet()));
+        self.known_karbonite.update();
     }
 }
