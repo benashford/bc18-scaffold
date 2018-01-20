@@ -62,11 +62,11 @@ impl KnownKarbonite {
 
         let mut locs = FnvHashMap::default();
 
-        for x in 0..width {
-            for y in 0..height {
+        for y in 0..height {
+            for x in 0..width {
                 let karbonite = original_locs[y][x];
                 if karbonite > 0 {
-                    locs.insert((y as i32, x as i32), karbonite);
+                    locs.insert((x as i32, y as i32), karbonite);
                 }
             }
         }
@@ -91,19 +91,19 @@ impl KnownKarbonite {
         self.update_map = false;
     }
 
-    pub(crate) fn get(&self, y: i32, x: i32) -> u32 {
-        match self.karbonite_locations.get(&(y, x)) {
+    pub(crate) fn get(&self, x: i32, y: i32) -> u32 {
+        match self.karbonite_locations.get(&(x, y)) {
             Some(&amt) => amt,
             None => 0u32,
         }
     }
 
-    pub(crate) fn set(&mut self, y: i32, x: i32, karbonite: u32) {
+    pub(crate) fn set(&mut self, x: i32, y: i32, karbonite: u32) {
         if karbonite > 0 {
-            self.karbonite_locations.insert((y, x), karbonite);
+            self.karbonite_locations.insert((x, y), karbonite);
         } else {
             self.update_map = true;
-            self.karbonite_locations.remove(&(y, x));
+            self.karbonite_locations.remove(&(x, y));
         }
     }
 }

@@ -30,11 +30,11 @@ fn do_workers(gc: &mut GameController, turn: &mut Turn) -> Result<(), Error> {
             _ => continue, // Probably in-space, ignore it
         };
         // TODO - replace with "find nearest karbonite"
-        let known_karbonite = turn.known_karbonite.get(location.y, location.x);
+        let known_karbonite = turn.known_karbonite.get(location.x, location.y);
         if known_karbonite > 0 {
             let actual_karbonite = gc.karbonite_at(location)?;
             turn.known_karbonite
-                .set(location.y, location.x, actual_karbonite);
+                .set(location.x, location.y, actual_karbonite);
             if actual_karbonite > 0 && gc.can_harvest(worker_id, Direction::Center) {
                 gc.harvest(worker_id, Direction::Center)?;
                 continue;
@@ -44,7 +44,7 @@ fn do_workers(gc: &mut GameController, turn: &mut Turn) -> Result<(), Error> {
         if gc.is_move_ready(worker_id) {
             if let Some(direction) = turn.known_karbonite
                 .gravity_map
-                .get(location.y, location.x)
+                .get(location.x, location.y)
                 .direction
             {
                 if gc.can_move(worker_id, direction) {
