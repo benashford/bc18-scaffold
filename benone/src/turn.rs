@@ -5,19 +5,19 @@ use rand;
 use bc::controller::GameController;
 use bc::location::Direction;
 use bc::map::PlanetMap;
-use bc::unit::{Unit, UnitID, UnitType};
+use bc::unit::{Unit, UnitType};
 
 use map::GravityMap;
 
 #[derive(Debug, Default)]
 pub(crate) struct KnownUnits {
-    pub(crate) workers: Vec<UnitID>,
-    pub(crate) knights: Vec<UnitID>,
-    pub(crate) rangers: Vec<UnitID>,
-    pub(crate) mages: Vec<UnitID>,
-    pub(crate) healers: Vec<UnitID>,
-    pub(crate) factories: Vec<UnitID>,
-    pub(crate) rockets: Vec<UnitID>,
+    pub(crate) workers: Vec<Unit>,
+    pub(crate) knights: Vec<Unit>,
+    pub(crate) rangers: Vec<Unit>,
+    pub(crate) mages: Vec<Unit>,
+    pub(crate) healers: Vec<Unit>,
+    pub(crate) factories: Vec<Unit>,
+    pub(crate) rockets: Vec<Unit>,
 }
 
 impl KnownUnits {
@@ -31,16 +31,15 @@ impl KnownUnits {
         self.rockets.clear();
     }
 
-    fn add(&mut self, unit: &Unit) {
-        let unit_id = unit.id();
+    fn add(&mut self, unit: Unit) {
         match unit.unit_type() {
-            UnitType::Worker => self.workers.push(unit_id),
-            UnitType::Knight => self.knights.push(unit_id),
-            UnitType::Ranger => self.rangers.push(unit_id),
-            UnitType::Mage => self.mages.push(unit_id),
-            UnitType::Healer => self.healers.push(unit_id),
-            UnitType::Factory => self.factories.push(unit_id),
-            UnitType::Rocket => self.factories.push(unit_id),
+            UnitType::Worker => self.workers.push(unit),
+            UnitType::Knight => self.knights.push(unit),
+            UnitType::Ranger => self.rangers.push(unit),
+            UnitType::Mage => self.mages.push(unit),
+            UnitType::Healer => self.healers.push(unit),
+            UnitType::Factory => self.factories.push(unit),
+            UnitType::Rocket => self.factories.push(unit),
         }
     }
 }
@@ -141,11 +140,11 @@ impl Turn {
         self.my_units.reset();
         self.enemy_units.reset();
 
-        for unit_ref in gc.units_ref() {
-            if unit_ref.team() == my_team {
-                self.my_units.add(unit_ref);
+        for unit in gc.units() {
+            if unit.team() == my_team {
+                self.my_units.add(unit);
             } else {
-                self.enemy_units.add(unit_ref);
+                self.enemy_units.add(unit);
             }
         }
 

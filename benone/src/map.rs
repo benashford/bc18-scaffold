@@ -18,7 +18,6 @@ pub(crate) struct GravityMap {
 
 impl GravityMap {
     pub(crate) fn new(planet: &PlanetMap) -> GravityMap {
-        println!("Creating GravityMap for planet: {:?}", planet);
         GravityMap {
             directions: Direction::all(),
             planet: planet.clone(),

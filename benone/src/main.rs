@@ -9,7 +9,8 @@ mod map;
 
 use bc::controller::GameController;
 use bc::error::GameError;
-use bc::location::{Direction, Location, MapLocation};
+use bc::location::{Direction, Location};
+use bc::unit::Unit;
 
 use failure::Error;
 
@@ -18,13 +19,17 @@ use turn::{KnownKarbonite, Turn};
 fn harvest_karbonite(
     gc: &mut GameController,
     karbonite: &mut KnownKarbonite,
-    worker_id: u16,
-    location: &MapLocation,
+    worker: &Unit,
     direction: Direction,
 ) -> Result<bool, GameError> {
+    let location = match worker.location() {
+        Location::OnMap(location) => location,
+        _ => panic!("Only on-map units should call this function"),
+    };
     let target_location = location.add(direction);
     let known_karbonite = karbonite.get(target_location.x, target_location.y);
     if known_karbonite > 0 {
+        let worker_id = worker.id();
         let actual_karbonite = gc.karbonite_at(target_location)?;
         karbonite.set(location.x, location.y, actual_karbonite);
         if actual_karbonite > 0 && gc.can_harvest(worker_id, direction) {
@@ -38,14 +43,13 @@ fn harvest_karbonite(
 fn harvest_nearest_karbonite(
     gc: &mut GameController,
     karbonite: &mut KnownKarbonite,
-    worker_id: u16,
-    location: &MapLocation,
+    worker: &Unit,
 ) -> Result<bool, GameError> {
-    if harvest_karbonite(gc, karbonite, worker_id, location, Direction::Center)? {
+    if harvest_karbonite(gc, karbonite, worker, Direction::Center)? {
         return Ok(true);
     }
     for &dir in Direction::all().iter() {
-        if harvest_karbonite(gc, karbonite, worker_id, location, dir)? {
+        if harvest_karbonite(gc, karbonite, worker, dir)? {
             return Ok(true);
         }
     }
@@ -54,7 +58,8 @@ fn harvest_nearest_karbonite(
 
 fn do_workers(gc: &mut GameController, turn: &mut Turn) -> Result<(), Error> {
     let num_workers = turn.my_units.workers.len();
-    for &worker_id in turn.my_units.workers.iter() {
+    for worker in turn.my_units.workers.iter() {
+        let worker_id = worker.id();
         let rand_direction = **rand::seq::sample_iter(&mut turn.rng, &turn.directions, 1)
             .unwrap()
             .get(0)
@@ -63,12 +68,12 @@ fn do_workers(gc: &mut GameController, turn: &mut Turn) -> Result<(), Error> {
             gc.replicate(worker_id, rand_direction)?;
             continue;
         }
-        let location = match gc.unit_ref(worker_id)?.location() {
+        let location = match worker.location() {
             Location::OnMap(location) => location,
             _ => continue, // Probably in-space, ignore it
         };
         // TODO - replace with "find nearest karbonite"
-        if harvest_nearest_karbonite(gc, &mut turn.known_karbonite, worker_id, &location)? {
+        if harvest_nearest_karbonite(gc, &mut turn.known_karbonite, worker)? {
             continue;
         }
         let known_karbonite = turn.known_karbonite.get(location.x, location.y);
