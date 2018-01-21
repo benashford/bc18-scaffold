@@ -71,12 +71,11 @@ impl KnownKarbonite {
             }
         }
 
-        let mut map = GravityMap::new(planet);
-        map.update(locs.keys().map(|x| *x).collect());
+        let map = GravityMap::new(planet);
 
         KnownKarbonite {
             karbonite_locations: locs,
-            update_map: false,
+            update_map: true,
             gravity_map: map,
         }
     }
