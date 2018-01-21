@@ -1,9 +1,11 @@
-use fnv::FnvHashMap;
+use std::iter::Iterator;
+
+use fnv::{FnvHashMap, FnvHashSet};
 
 use rand;
 
 use bc::controller::GameController;
-use bc::location::Direction;
+use bc::location::{Direction, Location, MapLocation};
 use bc::map::PlanetMap;
 use bc::unit::{Unit, UnitType};
 
@@ -20,6 +22,7 @@ pub(crate) struct KnownUnits {
     pub(crate) rockets: Vec<Unit>,
 }
 
+// TODO - this may make more sense being separated into SelfInfo and EnemyInfo
 impl KnownUnits {
     fn reset(&mut self) {
         self.workers.clear();
@@ -39,8 +42,21 @@ impl KnownUnits {
             UnitType::Mage => self.mages.push(unit),
             UnitType::Healer => self.healers.push(unit),
             UnitType::Factory => self.factories.push(unit),
-            UnitType::Rocket => self.factories.push(unit),
+            UnitType::Rocket => self.rockets.push(unit),
         }
+    }
+
+    fn iter<'a>(&'a self) -> Box<Iterator<Item = &'a Unit> + 'a> {
+        Box::new(
+            self.workers
+                .iter()
+                .chain(self.knights.iter())
+                .chain(self.rangers.iter())
+                .chain(self.mages.iter())
+                .chain(self.healers.iter())
+                .chain(self.factories.iter())
+                .chain(self.rockets.iter()),
+        )
     }
 }
 
@@ -48,8 +64,6 @@ impl KnownUnits {
 pub(crate) struct KnownKarbonite {
     // All the locations that are known to have karbonite
     karbonite_locations: FnvHashMap<(i32, i32), u32>,
-    // whether the gravity map needs updating on the next turn
-    update_map: bool,
     pub(crate) gravity_map: GravityMap,
 }
 
@@ -74,19 +88,15 @@ impl KnownKarbonite {
 
         KnownKarbonite {
             karbonite_locations: locs,
-            update_map: true,
             gravity_map: map,
         }
     }
 
-    fn update(&mut self) {
-        if !self.update_map {
-            return;
-        }
-        println!(" updating map");
-        self.gravity_map
-            .update(self.karbonite_locations.keys().map(|x| *x).collect());
-        self.update_map = false;
+    fn update(&mut self, obstacles: &FnvHashSet<MapLocation>) {
+        self.gravity_map.update(
+            self.karbonite_locations.keys().map(|x| *x).collect(),
+            obstacles,
+        );
     }
 
     pub(crate) fn get(&self, x: i32, y: i32) -> u32 {
@@ -100,7 +110,6 @@ impl KnownKarbonite {
         if karbonite > 0 {
             self.karbonite_locations.insert((x, y), karbonite);
         } else {
-            self.update_map = true;
             self.karbonite_locations.remove(&(x, y));
         }
     }
@@ -148,6 +157,15 @@ impl Turn {
             }
         }
 
-        self.known_karbonite.update();
+        let obstacles = self.enemy_units
+            .iter()
+            .fold(FnvHashSet::default(), |mut h, u| {
+                if let Location::OnMap(map_loc) = u.location() {
+                    h.insert(map_loc);
+                }
+                h
+            });
+
+        self.known_karbonite.update(&obstacles);
     }
 }

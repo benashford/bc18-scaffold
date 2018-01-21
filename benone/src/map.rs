@@ -1,5 +1,7 @@
 use std::collections::VecDeque;
 
+use fnv::FnvHashSet;
+
 use bc::location::{Direction, MapLocation};
 use bc::map::PlanetMap;
 
@@ -41,7 +43,11 @@ impl GravityMap {
         }
     }
 
-    pub(crate) fn update(&mut self, locations: Vec<(i32, i32)>) {
+    pub(crate) fn update(
+        &mut self,
+        locations: Vec<(i32, i32)>,
+        obstacles: &FnvHashSet<MapLocation>,
+    ) {
         self.initialize();
         let mut visit_queue = VecDeque::with_capacity(locations.len());
         for (x, y) in locations {
@@ -64,10 +70,12 @@ impl GravityMap {
                 }
 
                 let cell = &mut self.map[ny as usize][nx as usize];
+                let map_location = MapLocation::new(self.planet.planet, nx, ny);
                 if cell.direction.is_none()
                     && self.planet
-                        .is_passable_terrain_at(MapLocation::new(self.planet.planet, nx, ny))
+                        .is_passable_terrain_at(map_location)
                         .expect("Not a boolean result")
+                    && !obstacles.contains(&map_location)
                 {
                     visit_queue.push_back((nx, ny));
                     cell.direction = Some(direction.opposite());
