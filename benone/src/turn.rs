@@ -119,8 +119,6 @@ impl KnownKarbonite {
 pub(crate) struct Turn {
     pub(crate) rng: rand::ThreadRng,
 
-    pub(crate) directions: Vec<Direction>,
-
     pub(crate) known_karbonite: KnownKarbonite,
 
     pub(crate) my_units: KnownUnits,
@@ -134,7 +132,6 @@ impl Turn {
 
         let mut turn = Turn {
             rng: rand::thread_rng(),
-            directions: Direction::all(),
             known_karbonite: KnownKarbonite::new(&starting_map),
             my_units: Default::default(),
             enemy_units: Default::default(),

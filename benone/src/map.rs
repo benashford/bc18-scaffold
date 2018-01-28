@@ -5,6 +5,17 @@ use fnv::FnvHashSet;
 use bc::location::{Direction, MapLocation};
 use bc::map::PlanetMap;
 
+pub(crate) const DIRECTIONS: &'static [Direction] = &[
+    Direction::North,
+    Direction::South,
+    Direction::East,
+    Direction::West,
+    Direction::Northeast,
+    Direction::Southwest,
+    Direction::Southeast,
+    Direction::Northwest,
+];
+
 #[derive(Debug, Default)]
 pub(crate) struct GravityMapCell {
     pub(crate) direction: Option<Direction>,
@@ -13,7 +24,6 @@ pub(crate) struct GravityMapCell {
 
 #[derive(Debug)]
 pub(crate) struct GravityMap {
-    directions: Vec<Direction>,
     planet: PlanetMap,
     map: Vec<Vec<GravityMapCell>>,
 }
@@ -21,7 +31,6 @@ pub(crate) struct GravityMap {
 impl GravityMap {
     pub(crate) fn new(planet: &PlanetMap) -> GravityMap {
         GravityMap {
-            directions: Direction::all(),
             planet: planet.clone(),
             map: (0..planet.height)
                 .map(|_| (0..planet.width).map(|_| Default::default()).collect())
@@ -61,7 +70,7 @@ impl GravityMap {
         while !visit_queue.is_empty() {
             let (x, y) = visit_queue.pop_front().expect("Queue is empty");
             let ndist = self.map[y as usize][x as usize].distance + 1;
-            for direction in self.directions.iter() {
+            for direction in DIRECTIONS {
                 let nx = x + direction.dx();
                 let ny = y + direction.dy();
 

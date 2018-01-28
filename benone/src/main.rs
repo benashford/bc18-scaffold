@@ -10,10 +10,11 @@ mod map;
 use bc::controller::GameController;
 use bc::error::GameError;
 use bc::location::{Direction, Location};
-use bc::unit::Unit;
+use bc::unit::{Unit, UnitType};
 
 use failure::Error;
 
+use map::DIRECTIONS;
 use turn::{KnownKarbonite, Turn};
 
 fn harvest_karbonite(
@@ -48,8 +49,8 @@ fn harvest_nearest_karbonite(
     if harvest_karbonite(gc, karbonite, worker, Direction::Center)? {
         return Ok(true);
     }
-    for &dir in Direction::all().iter() {
-        if harvest_karbonite(gc, karbonite, worker, dir)? {
+    for dir in DIRECTIONS {
+        if harvest_karbonite(gc, karbonite, worker, *dir)? {
             return Ok(true);
         }
     }
@@ -60,7 +61,7 @@ fn do_workers(gc: &mut GameController, turn: &mut Turn) -> Result<(), Error> {
     let num_workers = turn.my_units.workers.len();
     for worker in turn.my_units.workers.iter() {
         let worker_id = worker.id();
-        let rand_direction = **rand::seq::sample_iter(&mut turn.rng, &turn.directions, 1)
+        let rand_direction = **rand::seq::sample_iter(&mut turn.rng, DIRECTIONS, 1)
             .unwrap()
             .get(0)
             .unwrap();
@@ -115,6 +116,15 @@ fn main() {
     let mut gc = GameController::new_player_env().expect("GameController");
     let mut turn_start = time::precise_time_ns();
     let mut turn = Turn::new(&gc);
+
+    // TODO - more refined research
+    gc.queue_research(UnitType::Worker);
+    gc.queue_research(UnitType::Knight);
+    gc.queue_research(UnitType::Rocket);
+    gc.queue_research(UnitType::Factory);
+    gc.queue_research(UnitType::Ranger);
+    gc.queue_research(UnitType::Mage);
+    gc.queue_research(UnitType::Healer);
 
     loop {
         let round = gc.round();
