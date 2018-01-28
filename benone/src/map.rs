@@ -19,7 +19,7 @@ pub(crate) const DIRECTIONS: &'static [Direction] = &[
 #[derive(Debug, Default)]
 pub(crate) struct GravityMapCell {
     pub(crate) direction: Option<Direction>,
-    distance: usize,
+    distance: u32,
 }
 
 #[derive(Debug)]
@@ -54,13 +54,15 @@ impl GravityMap {
 
     pub(crate) fn update(
         &mut self,
-        locations: Vec<(i32, i32)>,
+        locations: Vec<(i32, i32, u32)>,
         obstacles: &FnvHashSet<MapLocation>,
     ) {
         self.initialize();
         let mut visit_queue = VecDeque::with_capacity(locations.len());
-        for (x, y) in locations {
-            self.map[y as usize][x as usize].direction = Some(Direction::Center);
+        for (x, y, dist) in locations {
+            let cell = &mut self.map[y as usize][x as usize];
+            cell.direction = Some(Direction::Center);
+            cell.distance = dist;
             visit_queue.push_back((x, y));
         }
 
@@ -80,7 +82,7 @@ impl GravityMap {
 
                 let cell = &mut self.map[ny as usize][nx as usize];
                 let map_location = MapLocation::new(self.planet.planet, nx, ny);
-                if cell.direction.is_none()
+                if (cell.direction.is_none() || cell.distance > ndist)
                     && self.planet
                         .is_passable_terrain_at(map_location)
                         .expect("Not a boolean result")

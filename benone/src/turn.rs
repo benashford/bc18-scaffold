@@ -5,8 +5,8 @@ use fnv::{FnvHashMap, FnvHashSet};
 use rand;
 
 use bc::controller::GameController;
-use bc::location::{Direction, Location, MapLocation};
-use bc::map::PlanetMap;
+use bc::location::{Location, MapLocation};
+use bc::map::{AsteroidPattern, PlanetMap};
 use bc::unit::{Unit, UnitType};
 
 use map::GravityMap;
@@ -64,11 +64,12 @@ impl KnownUnits {
 pub(crate) struct KnownKarbonite {
     // All the locations that are known to have karbonite
     karbonite_locations: FnvHashMap<(i32, i32), u32>,
+    future_karbonite: Vec<(u32, i32, i32, u32)>, // round, x, y, amt
     pub(crate) gravity_map: GravityMap,
 }
 
 impl KnownKarbonite {
-    fn new(planet: &PlanetMap) -> KnownKarbonite {
+    fn new(planet: &PlanetMap, asteroids: &AsteroidPattern) -> KnownKarbonite {
         let width = planet.width;
         let height = planet.height;
         let original_locs = &planet.initial_karbonite;
@@ -84,17 +85,44 @@ impl KnownKarbonite {
             }
         }
 
+        let asteroid_map = asteroids.asteroid_map();
+        let mut future_karbonite: Vec<(u32, i32, i32, u32)> = asteroid_map
+            .iter()
+            .map(|(round, strike)| {
+                let location = strike.location;
+                (*round, location.x, location.y, strike.karbonite)
+            })
+            .collect();
+        future_karbonite.sort_by(|&(x, _, _, _), &(y, _, _, _)| y.cmp(&x));
+
         let map = GravityMap::new(planet);
 
         KnownKarbonite {
             karbonite_locations: locs,
+            future_karbonite: future_karbonite,
             gravity_map: map,
         }
     }
 
-    fn update(&mut self, obstacles: &FnvHashSet<MapLocation>) {
+    fn update(&mut self, round_num: u32, obstacles: &FnvHashSet<MapLocation>) {
+        let fut_karb_len = self.future_karbonite.len();
+        if fut_karb_len > 0 {
+            let &(round, _, _, _) = &self.future_karbonite[fut_karb_len - 1];
+            if round <= round_num {
+                let (_, x, y, amt) = self.future_karbonite
+                    .pop()
+                    .expect("Last vector element has gone missing");
+                self.karbonite_locations.insert((x, y), amt);
+            }
+        }
+        let known_locations = self.karbonite_locations.keys().map(|&(x, y)| (x, y, 0));
+        let still_future_karb = self.future_karbonite
+            .iter()
+            .rev()
+            .map(|&(round, x, y, _)| (x, y, round - round_num))
+            .take_while(|&(_, _, rounds_until)| rounds_until < 100);
         self.gravity_map.update(
-            self.karbonite_locations.keys().map(|x| *x).collect(),
+            known_locations.chain(still_future_karb).collect(),
             obstacles,
         );
     }
@@ -129,10 +157,11 @@ impl Turn {
     pub(crate) fn new(gc: &GameController) -> Self {
         let planet = gc.planet();
         let starting_map = gc.starting_map(planet);
+        let asteroid_pattern = gc.asteroid_pattern();
 
         let mut turn = Turn {
             rng: rand::thread_rng(),
-            known_karbonite: KnownKarbonite::new(&starting_map),
+            known_karbonite: KnownKarbonite::new(&starting_map, &asteroid_pattern),
             my_units: Default::default(),
             enemy_units: Default::default(),
         };
@@ -141,6 +170,7 @@ impl Turn {
     }
 
     pub(crate) fn update(&mut self, gc: &GameController) {
+        let round_num = gc.round();
         let my_team = gc.team();
 
         self.my_units.reset();
@@ -163,6 +193,6 @@ impl Turn {
                 h
             });
 
-        self.known_karbonite.update(&obstacles);
+        self.known_karbonite.update(round_num, &obstacles);
     }
 }

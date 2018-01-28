@@ -77,16 +77,6 @@ fn do_workers(gc: &mut GameController, turn: &mut Turn) -> Result<(), Error> {
         if harvest_nearest_karbonite(gc, &mut turn.known_karbonite, worker)? {
             continue;
         }
-        let known_karbonite = turn.known_karbonite.get(location.x, location.y);
-        if known_karbonite > 0 {
-            let actual_karbonite = gc.karbonite_at(location)?;
-            turn.known_karbonite
-                .set(location.x, location.y, actual_karbonite);
-            if actual_karbonite > 0 && gc.can_harvest(worker_id, Direction::Center) {
-                gc.harvest(worker_id, Direction::Center)?;
-                continue;
-            }
-        }
         // TODO - workers can mine adjacent squares without moving, do that here
         if gc.is_move_ready(worker_id) {
             if let Some(direction) = turn.known_karbonite
@@ -96,8 +86,6 @@ fn do_workers(gc: &mut GameController, turn: &mut Turn) -> Result<(), Error> {
             {
                 if gc.can_move(worker_id, direction) {
                     gc.move_robot(worker_id, direction)?;
-                } else if gc.can_move(worker_id, rand_direction) {
-                    gc.move_robot(worker_id, rand_direction)?;
                 }
             }
         }
