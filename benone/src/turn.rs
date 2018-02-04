@@ -7,9 +7,10 @@ use rand;
 use bc::controller::GameController;
 use bc::location::{Location, MapLocation};
 use bc::map::{AsteroidPattern, PlanetMap};
-use bc::unit::{Unit, UnitType};
+use bc::unit::{Unit, UnitID, UnitType};
 
 use map::GravityMap;
+use order::{HealerOrder, KnightOrder, MageOrder, RangerOrder, WorkerOrder};
 
 #[derive(Debug, Default)]
 pub(crate) struct KnownUnits {
@@ -58,6 +59,15 @@ impl KnownUnits {
                 .chain(self.rockets.iter()),
         )
     }
+}
+
+#[derive(Debug, Default)]
+pub(crate) struct UnitOrders {
+    pub(crate) workers: FnvHashMap<UnitID, WorkerOrder>,
+    pub(crate) knights: FnvHashMap<UnitID, KnightOrder>,
+    pub(crate) rangers: FnvHashMap<UnitID, RangerOrder>,
+    pub(crate) mages: FnvHashMap<UnitID, MageOrder>,
+    pub(crate) healers: FnvHashMap<UnitID, HealerOrder>,
 }
 
 #[derive(Debug)]
@@ -150,6 +160,7 @@ pub(crate) struct Turn {
     pub(crate) known_karbonite: KnownKarbonite,
 
     pub(crate) my_units: KnownUnits,
+    pub(crate) my_orders: UnitOrders,
     pub(crate) enemy_units: KnownUnits,
 }
 
@@ -163,6 +174,7 @@ impl Turn {
             rng: rand::thread_rng(),
             known_karbonite: KnownKarbonite::new(&starting_map, &asteroid_pattern),
             my_units: Default::default(),
+            my_orders: Default::default(),
             enemy_units: Default::default(),
         };
         turn.update(gc);

@@ -4,8 +4,9 @@ extern crate fnv;
 extern crate rand;
 extern crate time;
 
-mod turn;
 mod map;
+mod order;
+mod turn;
 
 use bc::controller::GameController;
 use bc::error::GameError;
