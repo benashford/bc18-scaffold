@@ -73,11 +73,9 @@ fn do_workers(gc: &mut GameController, turn: &mut Turn) -> Result<(), Error> {
             Location::OnMap(location) => location,
             _ => continue, // Probably in-space, ignore it
         };
-        // TODO - replace with "find nearest karbonite"
         if harvest_nearest_karbonite(gc, &mut turn.known_karbonite, worker)? {
             continue;
         }
-        // TODO - workers can mine adjacent squares without moving, do that here
         if gc.is_move_ready(worker_id) {
             if let Some(direction) = turn.known_karbonite
                 .gravity_map
